@@ -37,8 +37,10 @@ If your Home Assistant is running inside a virtual machine (like Proxmox VE, ESX
 
 ## 🛠️ File Structure
 
-*   `config.json`: Home Assistant Add-on manifest defining permissions, ports, and schema.
-*   `Dockerfile`: Builds the virtualization environment (QEMU + VNC + WebSockets + ADB).
-*   `start.sh`: Handles automated virtual disk creation, ISO downloading, and booting.
+*   `repository.json`: Manifest for the Home Assistant repository.
+*   `android-x86/config.json`: Home Assistant Add-on manifest defining permissions, ports, and schema.
+*   `android-x86/Dockerfile`: Builds the virtualization environment (QEMU + VNC + WebSockets + ADB).
+*   `android-x86/start.sh`: Handles automated virtual disk creation, ISO downloading, and booting.
+*   `android-x86/index.html`: Web redirector for noVNC Ingress WebSocket routing.
 *   `.gitignore`: Prevents temporary virtual disks (`.qcow2`), ISOs, and the local `brainstorm/` folder from being pushed to Git.
 *   `brainstorm/deep_dive.md`: A detailed technical breakdown of the architecture, graphics piping, and automation methods.
