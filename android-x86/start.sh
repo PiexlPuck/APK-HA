@@ -71,7 +71,7 @@ qemu-system-x86_64 \
     -smp "$CORES" \
     -drive file="$DISK_PATH",format=qcow2,if=virtio \
     $BOOT_ARGS \
-    -vga virtio \
+    -vga std \
     -display none \
     -vnc 0.0.0.0:0 \
     -net nic,model=virtio \
