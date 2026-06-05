@@ -1,0 +1,11 @@
+# Ignore local brainstorm files
+brainstorm/
+
+# Ignore QEMU virtual disk images and temporary ISO downloads
+*.qcow2
+*.iso
+*.img
+
+# OS-generated files
+.DS_Store
+Thumbs.db
