@@ -1,0 +1,29 @@
+{
+  "name": "Android-x86 Emulator",
+  "version": "1.0.0",
+  "slug": "android-x86-emulator",
+  "description": "Universal Android-x86 Emulator running inside QEMU with noVNC Ingress and ADB support",
+  "url": "https://github.com/BRAYD_USERNAME/REPOSITORY_NAME",
+  "startup": "application",
+  "boot": "auto",
+  "ingress": true,
+  "ingress_port": 8099,
+  "ports": {
+    "5555/tcp": 5555
+  },
+  "devices": [
+    "/dev/kvm:/dev/kvm"
+  ],
+  "options": {
+    "installed": false,
+    "memory": 2048,
+    "cores": 2
+  },
+  "schema": {
+    "installed": "bool",
+    "memory": "int(512,8192)",
+    "cores": "int(1,8)"
+  },
+  "arch": ["amd64"],
+  "privileged": ["SYS_ADMIN"]
+}

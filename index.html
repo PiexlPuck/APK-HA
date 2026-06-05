@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Redirecting to noVNC...</title>
+    <script type="text/javascript">
+        window.onload = function() {
+            var pathname = window.location.pathname;
+            if (!pathname.endsWith('/')) {
+                pathname += '/';
+            }
+            // Strip the leading slash for noVNC path query parameter
+            var wsPath = pathname.substring(1) + 'websockify';
+            // Redirect to the main vnc.html client with auto-scaling enabled
+            var target = pathname + 'vnc.html?path=' + encodeURIComponent(wsPath) + '&resize=scale';
+            window.location.href = target;
+        };
+    </script>
+</head>
+<body>
+    <p>Connecting to Android VNC console...</p>
+</body>
+</html>
