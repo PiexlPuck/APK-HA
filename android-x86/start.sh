@@ -76,8 +76,7 @@ qemu-system-x86_64 \
     -vnc 0.0.0.0:0 \
     -net nic,model=virtio \
     -net user,hostfwd=tcp::5555-:5555 \
-    -device virtio-tablet-pci \
-    -soundhw ac97 &
+    -device virtio-tablet-pci &
 QEMU_PID=$!
 
 # Cleanup trap to shut down processes gracefully on stop
