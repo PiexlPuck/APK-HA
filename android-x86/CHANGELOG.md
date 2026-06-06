@@ -1,3 +1,8 @@
+## 1.3.3
+- **Feature:** Direct persistent kernel booting for both install and run phases. Extracted boot files are stored in `/data/` to keep kernel arguments configurable from the start script.
+- **Fix:** Switched RUNNING mode graphics to use `nomodeset xforcevesa` compat flags, resolving the graphical freeze on the "android" logo screen (especially under software-only emulation).
+- **Optimization:** Switched emulator CPU model to `qemu64` in software mode to optimize translation speed when KVM is unavailable.
+
 ## 1.3.2
 - **Fix:** Attached the installation ISO as a CD-ROM device during direct kernel booting so the automated installer can locate and copy the system files, resolving the hang on "Detecting Android-x86...".
 
