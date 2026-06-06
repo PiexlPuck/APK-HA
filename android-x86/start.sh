@@ -45,13 +45,16 @@ fi
 
 # 3. Configure boot arguments depending on installation mode
 if [ "$INSTALLED" = "false" ] || [ "$INSTALLED" = "null" ]; then
-    echo "[INFO] Booting in INSTALLATION mode."
-    echo "[INFO] Please open the Web UI (noVNC) to partition and install Android-x86 to the virtual disk."
-    BOOT_ARGS="-cdrom $ISO_PATH -boot order=d"
+    echo "[INFO] Booting in AUTOMATED INSTALLATION mode."
+    echo "[INFO] Extracting kernel and initrd.img from ISO..."
+    bsdtar -xf "$ISO_PATH" -C /tmp kernel initrd.img
+    echo "[INFO] Extraction complete. Starting automated installation..."
+    BOOT_ARGS="-kernel /tmp/kernel -initrd /tmp/initrd.img -append \"root=/dev/ram0 androidboot.selinux=permissive AUTO_INSTALL=0\""
 else
     echo "[INFO] Booting in RUNNING mode."
     BOOT_ARGS="-boot order=c"
-    # Clean up the ISO to save 900MB of space in /data
+    # Clean up the ISO and temporary boot files to save space
+    rm -f "/tmp/kernel" "/tmp/initrd.img"
     if [ -f "$ISO_PATH" ]; then
         echo "[INFO] Deleting temporary installer ISO to free up space..."
         rm -f "$ISO_PATH"

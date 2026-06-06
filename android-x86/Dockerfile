@@ -3,7 +3,7 @@ FROM $BUILD_FROM
 
 ENV LANG C.UTF-8
 
-# Install QEMU, VNC, noVNC, websockify, and ADB tools
+# Install QEMU, VNC, noVNC, websockify, ADB, and ISO extraction tools
 RUN apk update && apk add --no-cache \
     qemu-system-x86_64 \
     qemu-img \
@@ -14,7 +14,8 @@ RUN apk update && apk add --no-cache \
     bash \
     curl \
     wget \
-    android-tools
+    android-tools \
+    libarchive-tools
 
 # Copy files
 COPY start.sh /app/start.sh
