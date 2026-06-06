@@ -43,43 +43,55 @@ else
     echo "[INFO] Existing virtual disk found at $DISK_PATH"
 fi
 
-# 3. Configure boot arguments depending on installation mode
+# 3. Start websockify proxy to expose QEMU VNC to browser Ingress
+echo "[INFO] Starting Websockify on Ingress port 8099..."
+websockify --web /usr/share/novnc 8099 localhost:5900 &
+WEBSOCKIFY_PID=$!
+
+# 4. Launch QEMU Virtual Machine depending on installation mode
+echo "[INFO] Starting QEMU with ${MEMORY}MB RAM and ${CORES} CPU cores..."
 if [ "$INSTALLED" = "false" ] || [ "$INSTALLED" = "null" ]; then
     echo "[INFO] Booting in AUTOMATED INSTALLATION mode."
     echo "[INFO] Extracting kernel and initrd.img from ISO..."
     bsdtar -xf "$ISO_PATH" -C /tmp kernel initrd.img
     echo "[INFO] Extraction complete. Starting automated installation..."
-    BOOT_ARGS="-kernel /tmp/kernel -initrd /tmp/initrd.img -append \"root=/dev/ram0 androidboot.selinux=permissive AUTO_INSTALL=0\""
+    
+    qemu-system-x86_64 \
+        $KVM_ARGS \
+        -m "$MEMORY" \
+        -smp "$CORES" \
+        -drive file="$DISK_PATH",format=qcow2,if=virtio \
+        -kernel /tmp/kernel \
+        -initrd /tmp/initrd.img \
+        -append "root=/dev/ram0 androidboot.selinux=permissive AUTO_INSTALL=0" \
+        -vga std \
+        -display none \
+        -vnc 0.0.0.0:0 \
+        -net nic,model=virtio \
+        -net user,hostfwd=tcp::5555-:5555 \
+        -device virtio-tablet-pci &
 else
     echo "[INFO] Booting in RUNNING mode."
-    BOOT_ARGS="-boot order=c"
     # Clean up the ISO and temporary boot files to save space
     rm -f "/tmp/kernel" "/tmp/initrd.img"
     if [ -f "$ISO_PATH" ]; then
         echo "[INFO] Deleting temporary installer ISO to free up space..."
         rm -f "$ISO_PATH"
     fi
+    
+    qemu-system-x86_64 \
+        $KVM_ARGS \
+        -m "$MEMORY" \
+        -smp "$CORES" \
+        -drive file="$DISK_PATH",format=qcow2,if=virtio \
+        -boot order=c \
+        -vga std \
+        -display none \
+        -vnc 0.0.0.0:0 \
+        -net nic,model=virtio \
+        -net user,hostfwd=tcp::5555-:5555 \
+        -device virtio-tablet-pci &
 fi
-
-# 4. Start websockify proxy to expose QEMU VNC to browser Ingress
-echo "[INFO] Starting Websockify on Ingress port 8099..."
-websockify --web /usr/share/novnc 8099 localhost:5900 &
-WEBSOCKIFY_PID=$!
-
-# 5. Launch QEMU Virtual Machine in background
-echo "[INFO] Starting QEMU with ${MEMORY}MB RAM and ${CORES} CPU cores..."
-qemu-system-x86_64 \
-    $KVM_ARGS \
-    -m "$MEMORY" \
-    -smp "$CORES" \
-    -drive file="$DISK_PATH",format=qcow2,if=virtio \
-    $BOOT_ARGS \
-    -vga std \
-    -display none \
-    -vnc 0.0.0.0:0 \
-    -net nic,model=virtio \
-    -net user,hostfwd=tcp::5555-:5555 \
-    -device virtio-tablet-pci &
 QEMU_PID=$!
 
 # Cleanup trap to shut down processes gracefully on stop

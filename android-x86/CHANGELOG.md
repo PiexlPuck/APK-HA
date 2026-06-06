@@ -1,3 +1,6 @@
+## 1.3.1
+- **Fix:** Fixed a shell word-splitting bug where QEMU parsed kernel parameters as separate files, causing the emulator to fail to start.
+
 ## 1.3.0
 - **Feature:** Automated installation mode. The add-on now automatically extracts the boot kernel and runs a headless installation script (`AUTO_INSTALL=0`), completely bypassing manual partitioning and wizard setups.
 
