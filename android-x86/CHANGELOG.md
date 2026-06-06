@@ -1,3 +1,6 @@
+## 1.3.4
+- **Fix:** Reverted CPU emulation model in software mode back to `max`. This ensures Android-x86 has access to modern SSE4.1/SSE4.2 instruction sets required to boot the guest kernel, resolving the black screen hang.
+
 ## 1.3.3
 - **Feature:** Direct persistent kernel booting for both install and run phases. Extracted boot files are stored in `/data/` to keep kernel arguments configurable from the start script.
 - **Fix:** Switched RUNNING mode graphics to use `nomodeset xforcevesa` compat flags, resolving the graphical freeze on the "android" logo screen (especially under software-only emulation).

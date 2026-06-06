@@ -16,7 +16,7 @@ if [ -e /dev/kvm ] && [ -w /dev/kvm ]; then
 else
     echo "[WARNING] KVM Hardware Acceleration is NOT available or writable!"
     echo "Android will run in software emulation mode, which is extremely CPU-heavy and slow."
-    KVM_ARGS="-cpu qemu64"
+    KVM_ARGS="-cpu max"
 fi
 
 ISO_PATH="/data/android-x86.iso"
