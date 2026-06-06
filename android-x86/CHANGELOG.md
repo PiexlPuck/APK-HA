@@ -1,3 +1,6 @@
+## 1.3.2
+- **Fix:** Attached the installation ISO as a CD-ROM device during direct kernel booting so the automated installer can locate and copy the system files, resolving the hang on "Detecting Android-x86...".
+
 ## 1.3.1
 - **Fix:** Fixed a shell word-splitting bug where QEMU parsed kernel parameters as separate files, causing the emulator to fail to start.
 

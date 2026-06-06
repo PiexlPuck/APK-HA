@@ -61,6 +61,7 @@ if [ "$INSTALLED" = "false" ] || [ "$INSTALLED" = "null" ]; then
         -m "$MEMORY" \
         -smp "$CORES" \
         -drive file="$DISK_PATH",format=qcow2,if=virtio \
+        -cdrom "$ISO_PATH" \
         -kernel /tmp/kernel \
         -initrd /tmp/initrd.img \
         -append "root=/dev/ram0 androidboot.selinux=permissive AUTO_INSTALL=0" \
