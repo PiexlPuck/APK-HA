@@ -1,6 +1,6 @@
 {
   "name": "Android APK",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "slug": "android-x86-emulator",
   "description": "Lightweight Android APK runner powered by ApkStart container trimming, Quickboot snapshots, drag-and-drop APK installer, noVNC Ingress, and ADB",
   "url": "https://github.com/PiexlPuck/APK-HA",
