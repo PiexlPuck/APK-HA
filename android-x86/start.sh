@@ -189,7 +189,7 @@ if [ -f "$ISO_PATH" ]; then
 fi
 
 # 7. Check Quickboot Snapshot validity (ApkStart layers.js invalidation pattern)
-CURRENT_META="${MEMORY}_${CORES}_${KVM_MODE}"
+CURRENT_META="v204_${MEMORY}_${CORES}_${KVM_MODE}"
 LOADVM_ARGS=""
 if [ "$QUICKBOOT" = "true" ]; then
     if qemu-img snapshot -l "$DISK_PATH" 2>/dev/null | grep -q "quickboot"; then
@@ -220,7 +220,7 @@ qemu-system-x86_64 \
     -drive file="$DISK_PATH",format=qcow2,if=virtio,cache=writeback \
     -kernel "$KERNEL_PATH" \
     -initrd "$INITRD_PATH" \
-    -append "root=/dev/ram0 androidboot.selinux=permissive nomodeset xforcevesa quiet SRC=/android-9.0-r2" \
+    -append "root=/dev/ram0 androidboot.selinux=permissive androidboot.hardware=android_x86_64 nomodeset xforcevesa HWACCEL=0 SETUPWIZARD=0 quiet SRC=/android-9.0-r2" \
     -vga std \
     -display none \
     -vnc 0.0.0.0:0 \

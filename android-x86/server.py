@@ -814,7 +814,7 @@ class RuntimeManager:
     def manage_snapshot(self, action):
         self.ensure_awake()
         kvm_mode = "kvm" if self.kvm else "tcg"
-        meta_str = f"{self.memory}_{self.cores}_{kvm_mode}"
+        meta_str = f"v204_{self.memory}_{self.cores}_{kvm_mode}"
         if action == "save":
             ok, msg = self.qemu_monitor_cmd("savevm quickboot", timeout=45.0)
             if ok:

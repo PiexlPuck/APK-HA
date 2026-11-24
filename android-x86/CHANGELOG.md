@@ -1,3 +1,6 @@
+## 2.0.4
+- **Critical Fix (Resolved Hang on "android" Boot Logo):** Added the required `androidboot.hardware=android_x86_64`, `HWACCEL=0`, and `SETUPWIZARD=0` kernel parameters to `-append` during direct kernel boot. Without `androidboot.hardware=android_x86_64`, Android's `init` never imported `/init.android_x86_64.rc` or `/fstab.android_x86_64` (never mounting `/cache`, never running `/system/etc/init.sh`, and never setting `vold.post_fs_data_done=1`), causing `SurfaceFlinger` and `system_server` to hang indefinitely on the "android" boot animation screen.
+
 ## 2.0.3
 - **Critical Fix (Resolved First-Time Installer Hang at 0.2 MB):** Replaced the QEMU `AUTO_INSTALL=0` installer boot (which hung waiting for an invisible `dialog --yesno` confirmation prompt inside Android-x86's `1-install` script) with direct userspace ext4 disk provisioning (`bsdtar` + `mke2fs -t ext4 -d` + `qemu-img convert`). The virtual disk now builds in **~10 seconds** without booting an installer VM at all.
 
