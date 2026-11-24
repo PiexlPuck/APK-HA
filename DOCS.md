@@ -8,7 +8,7 @@ Follow this guide to start the add-on, drop in your `.apk` files, and automate i
 
 1. Install and **Start** the Add-on.
 2. Open the **Web UI** (Ingress).
-3. On your very first start, the Add-on automatically downloads the Android-x86 image, runs the unattended disk installer (`AUTO_INSTALL=0`), deletes the 900MB installer ISO to reclaim disk space, and transitions **automatically** into Running Mode (or you can click **"Installer Done — Switch to Running Mode"** in the sidebar as soon as the blue installer screen says *"Android-x86 is installed successfully"*).
+3. On your very first start, the Web UI displays a locked **First-Time Android Setup** progress screen (hiding all controls and VNC until setup completes) while the Add-on downloads the Android-x86 image, runs the unattended disk installer (`AUTO_INSTALL=0`), deletes the 900MB installer ISO to reclaim disk space, and automatically unlocks and boots into Running Mode.
 4. Once Android finishes its first boot, the **ApkStart Watchdog** automatically:
    * Disables all Android UI animations (`0.0x`) for instant tap responsiveness,
    * Deep-trims ~14 background Android system services (`pm disable-user`), and

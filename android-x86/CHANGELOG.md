@@ -1,3 +1,7 @@
+## 2.0.1
+- **Improvement (Short Sidebar Title):** Shortened the add-on name to `Android APK` and added `panel_title: "Android"` (`panel_icon: "mdi:android"`) in `config.json` so the Home Assistant sidebar label is compact and clean.
+- **Feature (First-Time Installation Lock Screen):** Locked and hid the entire control workspace and VNC console behind a full-screen installation progress overlay during first-time setup (`downloading`, `extracting`, `installing`). The UI automatically unlocks and connects noVNC only after installation completes.
+
 ## 2.0.0
 - **Feature (ApkStart Engine):** Integrated the core container trimming and APK parsing engine from `RoutineMiku/apkstart`.
 - **Feature (Offline Binary APK Parser & Drag-and-Drop Installer):** Added a unified Python 3 + Websockify Ingress control server (`server.py`) that parses binary `AndroidManifest.xml` (AXML) and `resources.arsc` offline, extracts app icons/labels/launch activities, installs `.apk` files via `adb install -r -g -t`, and launches them automatically.

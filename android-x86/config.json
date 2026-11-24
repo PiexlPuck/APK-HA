@@ -1,6 +1,6 @@
 {
-  "name": "Android-x86 Emulator (ApkStart Engine)",
-  "version": "2.0.0",
+  "name": "Android APK",
+  "version": "2.0.1",
   "slug": "android-x86-emulator",
   "description": "Lightweight Android APK runner powered by ApkStart container trimming, Quickboot snapshots, drag-and-drop APK installer, noVNC Ingress, and ADB",
   "url": "https://github.com/PiexlPuck/APK-HA",
@@ -8,6 +8,8 @@
   "boot": "auto",
   "ingress": true,
   "ingress_port": 8099,
+  "panel_title": "Android",
+  "panel_icon": "mdi:android",
   "ports": {
     "5555/tcp": 5555
   },

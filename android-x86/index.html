@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Android-x86 (ApkStart Engine)</title>
+    <title>Android</title>
     <style>
         :root {
             --bg: #0f172a;
@@ -27,10 +27,116 @@
             display: flex;
             overflow: hidden;
         }
+
+        /* Full-Screen First-Time Installation Lock Overlay */
+        #install-lock-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        #install-lock-overlay.hidden {
+            display: none;
+        }
+        .lock-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            max-width: 460px;
+            width: 100%;
+            padding: 28px 24px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--panel-alt);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            margin: 0 auto 18px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .lock-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .lock-msg {
+            font-size: 13px;
+            color: var(--accent);
+            line-height: 1.5;
+            margin-bottom: 18px;
+            min-height: 20px;
+        }
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            background: var(--bg);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 18px;
+            border: 1px solid var(--border);
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            width: 15%;
+            transition: width 0.4s ease;
+        }
+        .step-list {
+            text-align: left;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 14px;
+        }
+        .step-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .step-item.active {
+            color: var(--text);
+            font-weight: 600;
+        }
+        .step-item.done {
+            color: #4ade80;
+        }
+        .lock-note {
+            font-size: 11px;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+
+        /* Main Workspace (Hidden & Locked while installing) */
+        #app-workspace {
+            display: none;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #app-workspace.unlocked {
+            display: flex;
+        }
+
         /* Sidebar */
         .sidebar {
-            width: 340px;
-            min-width: 340px;
+            width: 320px;
+            min-width: 320px;
             background: var(--panel);
             border-right: 1px solid var(--border);
             display: flex;
@@ -39,7 +145,7 @@
             z-index: 10;
         }
         .sidebar.collapsed {
-            margin-left: -340px;
+            margin-left: -320px;
         }
         .header {
             padding: 14px 16px;
@@ -294,107 +400,136 @@
     </style>
 </head>
 <body>
-    <aside class="sidebar" id="sidebar">
-        <div class="header">
-            <h1>⚡ ApkStart Engine</h1>
-            <span class="badge" id="phase-badge">Starting</span>
+    <!-- Full-Screen Lock Overlay shown during First-Time Installation -->
+    <div id="install-lock-overlay">
+        <div class="lock-card">
+            <div class="spinner"></div>
+            <div class="lock-title" id="lock-title">First-Time Android Setup</div>
+            <div class="lock-msg" id="lock-msg">Checking installation status...</div>
+            <div class="progress-track">
+                <div class="progress-bar" id="lock-progress"></div>
+            </div>
+            <div class="step-list">
+                <div class="step-item" id="step-download">
+                    <span>1. Download Android System ISO</span>
+                    <span id="step-download-state">Pending</span>
+                </div>
+                <div class="step-item" id="step-extract">
+                    <span>2. Extract Direct-Boot Kernel</span>
+                    <span id="step-extract-state">Pending</span>
+                </div>
+                <div class="step-item" id="step-install">
+                    <span>3. Auto-Install to Virtual Disk</span>
+                    <span id="step-install-state">Pending</span>
+                </div>
+            </div>
+            <div class="lock-note">
+                 🔒 Interface is locked while the virtual disk is being provisioned for the first time. It will unlock automatically once installation completes.
+            </div>
         </div>
+    </div>
 
-        <div class="sidebar-body">
-            <!-- Runtime Status -->
-            <div class="card">
-                <div class="card-title">
-                    <span>Runtime Status</span>
-                    <span id="disk-label" style="font-size:11px;color:var(--muted);">0 MB</span>
-                </div>
-                <div class="status-msg" id="status-msg">Connecting to ApkStart control server...</div>
-                <div class="status-grid">
-                    <div class="status-item"><span>KVM Accel</span><span class="badge" id="kvm-badge">...</span></div>
-                    <div class="status-item"><span>ADB Bridge</span><span class="badge" id="adb-badge">...</span></div>
-                    <div class="status-item"><span>Quickboot</span><span class="badge" id="snap-badge">...</span></div>
-                    <div class="status-item"><span>Deep Trim</span><span class="badge" id="trim-badge">...</span></div>
-                </div>
-                <div class="btn-row" id="install-finish-row" style="margin-top:8px;display:none;">
-                    <button class="primary" onclick="finishInstall()">✅ Installer Done — Switch to Running Mode</button>
-                </div>
+    <!-- Main Unlocked Workspace (Hidden until installed === true) -->
+    <div id="app-workspace">
+        <aside class="sidebar" id="sidebar">
+            <div class="header">
+                <h1>⚡ Android</h1>
+                <span class="badge" id="phase-badge">Starting</span>
             </div>
 
-            <!-- Drag & Drop APK Installer (ApkStart Offline Parser) -->
-            <div class="card">
-                <div class="card-title">
-                    <span>📦 Drop APK to Install & Run</span>
-                </div>
-                <div class="dropzone" id="dropzone" onclick="document.getElementById('apk-file').click()">
-                    <p id="drop-title">Drop .apk file here or click to browse</p>
-                    <span id="drop-sub">Parses AndroidManifest & icon offline, installs via ADB & launches</span>
-                    <input type="file" id="apk-file" accept=".apk" style="display:none" onchange="handleFileSelect(this.files)">
-                </div>
-                <div class="toast" id="install-toast"></div>
-            </div>
-
-            <!-- Installed Apps (Single-App Container Launcher) -->
-            <div class="card">
-                <div class="card-title">
-                    <span>📱 Installed Apps (Single-App Mode)</span>
-                    <button style="flex:unset;padding:2px 6px;font-size:10px;" onclick="refreshApps()">↻ Sync</button>
-                </div>
-                <div class="app-list" id="app-list">
-                    <div style="font-size:12px;color:var(--muted);text-align:center;padding:8px;">
-                        No user APKs installed yet. Drop an APK above!
+            <div class="sidebar-body">
+                <!-- Runtime Status -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>Status</span>
+                        <span id="disk-label" style="font-size:11px;color:var(--muted);">0 MB</span>
+                    </div>
+                    <div class="status-msg" id="status-msg">Connecting...</div>
+                    <div class="status-grid">
+                        <div class="status-item"><span>KVM</span><span class="badge" id="kvm-badge">...</span></div>
+                        <div class="status-item"><span>ADB</span><span class="badge" id="adb-badge">...</span></div>
+                        <div class="status-item"><span>Snapshot</span><span class="badge" id="snap-badge">...</span></div>
+                        <div class="status-item"><span>Trim</span><span class="badge" id="trim-badge">...</span></div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Speed, Snapshot & 0% CPU Idle Controls -->
-            <div class="card">
-                <div class="card-title"><span>🚀 Speed & Power Controls</span></div>
-                <div class="btn-row">
-                    <button class="warn" id="park-btn" onclick="togglePark()">💤 Park VM (0% CPU)</button>
-                    <button class="success" onclick="runTrim()">✂️ Deep Trim RAM</button>
+                <!-- Drag & Drop APK Installer -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>📦 Install APK</span>
+                    </div>
+                    <div class="dropzone" id="dropzone" onclick="document.getElementById('apk-file').click()">
+                        <p id="drop-title">Drop .apk here or click to browse</p>
+                        <span id="drop-sub">Auto-installs via ADB & launches app</span>
+                        <input type="file" id="apk-file" accept=".apk" style="display:none" onchange="handleFileSelect(this.files)">
+                    </div>
+                    <div class="toast" id="install-toast"></div>
                 </div>
-                <div class="btn-row" style="margin-top:6px;">
-                    <button onclick="snapshotAction('save')">💾 Save Quickboot</button>
-                    <button onclick="snapshotAction('load')">⚡ Load Quickboot</button>
-                </div>
-            </div>
 
-            <!-- HA ADB Automation Helper -->
-            <div class="card">
-                <div class="card-title"><span>🤖 Home Assistant ADB Helper</span></div>
-                <div class="input-group">
-                    <input type="number" id="tap-x" placeholder="X (e.g. 450)">
-                    <input type="number" id="tap-y" placeholder="Y (e.g. 1200)">
-                    <button class="primary" style="flex:unset;" onclick="sendTap()">Tap</button>
+                <!-- Installed Apps -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>📱 Apps</span>
+                        <button style="flex:unset;padding:2px 6px;font-size:10px;" onclick="refreshApps()">↻ Sync</button>
+                    </div>
+                    <div class="app-list" id="app-list">
+                        <div style="font-size:12px;color:var(--muted);text-align:center;padding:8px;">
+                            No user APKs installed yet.
+                        </div>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <input type="text" id="input-text" placeholder="Type text / login...">
-                    <button style="flex:unset;" onclick="sendText()">Send</button>
+
+                <!-- Speed, Snapshot & 0% CPU Idle Controls -->
+                <div class="card">
+                    <div class="card-title"><span>🚀 Power & Snapshots</span></div>
+                    <div class="btn-row">
+                        <button class="warn" id="park-btn" onclick="togglePark()">💤 Park (0% CPU)</button>
+                        <button class="success" onclick="runTrim()">✂️ Trim RAM</button>
+                    </div>
+                    <div class="btn-row" style="margin-top:6px;">
+                        <button onclick="snapshotAction('save')">💾 Save Snap</button>
+                        <button onclick="snapshotAction('load')">⚡ Load Snap</button>
+                    </div>
                 </div>
-                <pre class="yaml-box" id="yaml-box" onclick="copyYaml()" title="Click to copy YAML">service: androidtv.adb_command
+
+                <!-- HA ADB Automation Helper -->
+                <div class="card">
+                    <div class="card-title"><span>🤖 HA ADB Helper</span></div>
+                    <div class="input-group">
+                        <input type="number" id="tap-x" placeholder="X (450)">
+                        <input type="number" id="tap-y" placeholder="Y (1200)">
+                        <button class="primary" style="flex:unset;" onclick="sendTap()">Tap</button>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="input-text" placeholder="Type text...">
+                        <button style="flex:unset;" onclick="sendText()">Send</button>
+                    </div>
+                    <pre class="yaml-box" id="yaml-box" onclick="copyYaml()" title="Click to copy YAML">service: androidtv.adb_command
 target:
   entity_id: media_player.android_x86_emulator
 data:
   command: "input tap 450 1200"</pre>
+                </div>
             </div>
-        </div>
-    </aside>
+        </aside>
 
-    <main class="main-view">
-        <div class="topbar">
-            <div class="topbar-left">
-                <button onclick="toggleSidebar()">☰ Toggle ApkStart Panel</button>
-                <span id="fg-app-label" style="color:var(--muted);">Screen Console</span>
+        <main class="main-view">
+            <div class="topbar">
+                <div class="topbar-left">
+                    <button onclick="toggleSidebar()">☰ Menu</button>
+                    <span id="fg-app-label" style="color:var(--muted);">Console</span>
+                </div>
+                <div class="topbar-right">
+                    <button onclick="sendKey(4)" title="Android Back">◀ Back</button>
+                    <button onclick="sendKey(3)" title="Android Home">● Home</button>
+                    <button onclick="sendKey(187)" title="Recent Apps">■ Apps</button>
+                    <button onclick="sendKey(224)" title="Wake Screen">☀ Wake</button>
+                    <button onclick="reloadVnc()">↻ VNC</button>
+                </div>
             </div>
-            <div class="topbar-right">
-                <button onclick="sendKey(4)" title="Android Back">◀ Back</button>
-                <button onclick="sendKey(3)" title="Android Home">● Home</button>
-                <button onclick="sendKey(187)" title="Recent Apps">■ Apps</button>
-                <button onclick="sendKey(224)" title="Wake Screen">☀ Wake</button>
-                <button onclick="reloadVnc()">↻ Reconnect VNC</button>
-            </div>
-        </div>
-        <iframe id="vnc-frame" title="Android noVNC Console"></iframe>
-    </main>
+            <iframe id="vnc-frame" title="Android noVNC Console"></iframe>
+        </main>
+    </div>
 
     <script>
         var basePath = window.location.pathname;
@@ -402,8 +537,11 @@ data:
             basePath += '/';
         }
         var isParked = false;
+        var vncInitialized = false;
 
         function initVnc() {
+            if (vncInitialized) return;
+            vncInitialized = true;
             var wsPath = basePath.substring(1) + 'websockify';
             var vncUrl = basePath + 'vnc.html?path=' + encodeURIComponent(wsPath) + '&resize=scale&autoconnect=true&reconnect=true&reconnect_delay=2000';
             document.getElementById('vnc-frame').src = vncUrl;
@@ -411,7 +549,11 @@ data:
 
         function reloadVnc() {
             var frame = document.getElementById('vnc-frame');
-            frame.src = frame.src;
+            if (!vncInitialized) {
+                initVnc();
+            } else {
+                frame.src = frame.src;
+            }
         }
 
         function toggleSidebar() {
@@ -445,10 +587,66 @@ data:
             return await res.json();
         }
 
+        function updateLockScreen(st) {
+            var overlay = document.getElementById('install-lock-overlay');
+            var workspace = document.getElementById('app-workspace');
+            var phase = st.phase || 'starting';
+            var needsInstall = !st.installed || phase === 'downloading' || phase === 'extracting' || phase === 'installing';
+
+            if (needsInstall) {
+                overlay.classList.remove('hidden');
+                workspace.classList.remove('unlocked');
+                document.getElementById('lock-msg').textContent = st.message || 'Provisioning Android environment...';
+
+                var sDown = document.getElementById('step-download');
+                var sExt = document.getElementById('step-extract');
+                var sInst = document.getElementById('step-install');
+                var sDownTxt = document.getElementById('step-download-state');
+                var sExtTxt = document.getElementById('step-extract-state');
+                var sInstTxt = document.getElementById('step-install-state');
+                var bar = document.getElementById('lock-progress');
+
+                sDown.className = 'step-item';
+                sExt.className = 'step-item';
+                sInst.className = 'step-item';
+
+                if (phase === 'downloading' || phase === 'starting') {
+                    sDown.className = 'step-item active';
+                    sDownTxt.textContent = 'In Progress...';
+                    sExtTxt.textContent = 'Waiting';
+                    sInstTxt.textContent = 'Waiting';
+                    bar.style.width = '25%';
+                } else if (phase === 'extracting') {
+                    sDown.className = 'step-item done';
+                    sDownTxt.textContent = '✓ Done';
+                    sExt.className = 'step-item active';
+                    sExtTxt.textContent = 'Extracting...';
+                    sInstTxt.textContent = 'Waiting';
+                    bar.style.width = '50%';
+                } else if (phase === 'installing') {
+                    sDown.className = 'step-item done';
+                    sDownTxt.textContent = '✓ Done';
+                    sExt.className = 'step-item done';
+                    sExtTxt.textContent = '✓ Done';
+                    sInst.className = 'step-item active';
+                    var mb = st.diskSizeMb || 0;
+                    sInstTxt.textContent = mb + ' MB written';
+                    var pct = Math.min(96, Math.max(55, Math.round(55 + (mb / 600) * 41)));
+                    bar.style.width = pct + '%';
+                }
+                return true;
+            } else {
+                overlay.classList.add('hidden');
+                workspace.classList.add('unlocked');
+                initVnc();
+                return false;
+            }
+        }
+
         function renderApps(apps) {
             var list = document.getElementById('app-list');
             if (!apps || apps.length === 0) {
-                list.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px;">No user APKs installed yet. Drop an APK above!</div>';
+                list.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px;">No user APKs installed yet.</div>';
                 return;
             }
             list.innerHTML = '';
@@ -469,7 +667,7 @@ data:
                         '<div class="app-pkg">' + app.package + (app.versionName ? ' • v' + app.versionName : '') + '</div>' +
                     '</div>' +
                     '<div class="app-actions">' +
-                        '<button class="primary" title="Launch in Single-App Mode" onclick="launchApp(\'' + app.package + '\', \'' + (app.launchActivity || '') + '\')">▶ Run</button>' +
+                        '<button class="primary" title="Launch App" onclick="launchApp(\'' + app.package + '\', \'' + (app.launchActivity || '') + '\')">▶</button>' +
                         '<button title="Copy HA Launch YAML" onclick="appYaml(\'' + app.package + '\', \'' + (app.launchActivity || '') + '\')">YAML</button>' +
                         '<button title="Force Stop App" onclick="stopApp(\'' + app.package + '\')">■</button>' +
                     '</div>';
@@ -480,19 +678,23 @@ data:
         async function pollStatus() {
             try {
                 var st = await apiCall('status');
+                if (updateLockScreen(st)) {
+                    return;
+                }
+
                 document.getElementById('status-msg').textContent = st.message || '';
-                document.getElementById('disk-label').textContent = (st.diskSizeMb || 0) + ' MB disk';
+                document.getElementById('disk-label').textContent = (st.diskSizeMb || 0) + ' MB';
 
                 var phaseBadge = document.getElementById('phase-badge');
                 phaseBadge.textContent = (st.phase || 'running').toUpperCase();
                 phaseBadge.className = 'badge ' + (st.phase === 'ready' ? 'ok' : (st.phase === 'parked' ? 'warn' : ''));
 
                 var kvmBadge = document.getElementById('kvm-badge');
-                kvmBadge.textContent = st.kvm ? 'Active' : 'Software';
+                kvmBadge.textContent = st.kvm ? 'Active' : 'Soft';
                 kvmBadge.className = 'badge ' + (st.kvm ? 'ok' : 'danger');
 
                 var adbBadge = document.getElementById('adb-badge');
-                adbBadge.textContent = st.adbConnected ? 'Online' : 'Waiting';
+                adbBadge.textContent = st.adbConnected ? 'Online' : 'Wait';
                 adbBadge.className = 'badge ' + (st.adbConnected ? 'ok' : 'warn');
 
                 var snapBadge = document.getElementById('snap-badge');
@@ -500,28 +702,25 @@ data:
                 snapBadge.className = 'badge ' + (st.hasSnapshot ? 'ok' : '');
 
                 var trimBadge = document.getElementById('trim-badge');
-                trimBadge.textContent = st.trimmed ? 'Trimmed' : (st.deep_trim ? 'Pending' : 'Off');
+                trimBadge.textContent = st.trimmed ? 'Active' : (st.deep_trim ? 'Wait' : 'Off');
                 trimBadge.className = 'badge ' + (st.trimmed ? 'ok' : '');
-
-                document.getElementById('install-finish-row').style.display =
-                    (st.phase === 'installing') ? 'flex' : 'none';
 
                 isParked = !!st.parked;
                 var parkBtn = document.getElementById('park-btn');
-                parkBtn.textContent = isParked ? '⚡ Wake VM' : '💤 Park VM (0% CPU)';
+                parkBtn.textContent = isParked ? '⚡ Wake VM' : '💤 Park (0% CPU)';
                 parkBtn.className = isParked ? 'primary' : 'warn';
 
                 if (st.foregroundPackage) {
-                    document.getElementById('fg-app-label').textContent = 'Foreground: ' + st.foregroundPackage;
+                    document.getElementById('fg-app-label').textContent = st.foregroundPackage;
                 }
                 renderApps(st.apps || []);
             } catch (e) {
-                document.getElementById('status-msg').textContent = 'Waiting for server...';
+                document.getElementById('lock-msg').textContent = 'Waiting for add-on server...';
             }
         }
 
         async function launchApp(pkg, act) {
-            setToast('Launching ' + pkg + ' (stopping background apps)...');
+            setToast('Launching ' + pkg + '...');
             var res = await apiCall('launch', 'POST', { package: pkg, activity: act || null, single_app: true });
             setToast(res.message || 'Launched!', !res.ok);
             appYaml(pkg, act);
@@ -554,22 +753,17 @@ data:
         }
 
         async function runTrim() {
-            setToast('Running ApkStart deep system trim...');
+            setToast('Trimming background services...');
             var res = await apiCall('trim', 'POST', {});
             setToast(res.message || 'Trimmed!', !res.ok);
             pollStatus();
         }
 
         async function snapshotAction(action) {
-            setToast((action === 'save' ? 'Saving' : 'Loading') + ' Quickboot VM snapshot...');
+            setToast((action === 'save' ? 'Saving' : 'Loading') + ' Quickboot snapshot...');
             var res = await apiCall('snapshot', 'POST', { action: action });
             setToast(res.message || '', !res.ok);
             pollStatus();
-        }
-
-        async function finishInstall() {
-            var res = await apiCall('finish-install', 'POST', {});
-            setToast(res.message || '');
         }
 
         async function sendKey(keycode) {
@@ -598,8 +792,8 @@ data:
             var title = document.getElementById('drop-title');
             var sub = document.getElementById('drop-sub');
             title.textContent = 'Installing ' + file.name + '...';
-            sub.textContent = 'Parsing AXML manifest, installing via ADB & launching app...';
-            setToast('Uploading & parsing ' + file.name + ' (' + (file.size / 1048576).toFixed(1) + ' MB)...');
+            sub.textContent = 'Parsing manifest & installing via ADB...';
+            setToast('Uploading ' + file.name + ' (' + (file.size / 1048576).toFixed(1) + ' MB)...');
 
             try {
                 var res = await fetch(basePath + 'api/install-apk', {
@@ -613,7 +807,7 @@ data:
                 });
                 var data = await res.json();
                 if (data.ok && data.app) {
-                    title.textContent = '✅ Installed ' + data.app.label + ' (v' + data.app.versionName + ')';
+                    title.textContent = '✅ Installed ' + data.app.label;
                     sub.textContent = data.app.package + ' — Drop another .apk anytime';
                     setToast('Installed & launched ' + data.app.label + '!');
                     appYaml(data.app.package, data.app.launchActivity);
@@ -646,9 +840,8 @@ data:
         });
 
         window.onload = function() {
-            initVnc();
             pollStatus();
-            setInterval(pollStatus, 4000);
+            setInterval(pollStatus, 3000);
         };
     </script>
 </body>

@@ -1119,6 +1119,13 @@ class ApkStartIngressHandler(ProxyRequestHandler):
             self._send_json({"ok": False, "error": "Not found"}, HTTPStatus.NOT_FOUND)
             return
 
+        if not os.path.exists(INSTALLED_MARKER):
+            self._send_json(
+                {"ok": False, "error": "First-time installation is still in progress. Controls are locked until setup completes."},
+                HTTPStatus.LOCKED,
+            )
+            return
+
         try:
             if route in ("/api/install-apk", "/api/parse-apk"):
                 length = int(self.headers.get("Content-Length", "0"))
