@@ -1,9 +1,9 @@
 {
-  "name": "Android-x86 Emulator",
-  "version": "1.3.4",
+  "name": "Android-x86 Emulator (ApkStart Engine)",
+  "version": "2.0.0",
   "slug": "android-x86-emulator",
-  "description": "Universal Android-x86 Emulator running inside QEMU with noVNC Ingress and ADB support",
-  "url": "https://github.com/BRAYD_USERNAME/REPOSITORY_NAME",
+  "description": "Lightweight Android APK runner powered by ApkStart container trimming, Quickboot snapshots, drag-and-drop APK installer, noVNC Ingress, and ADB",
+  "url": "https://github.com/PiexlPuck/APK-HA",
   "startup": "application",
   "boot": "auto",
   "ingress": true,
@@ -15,14 +15,20 @@
     "/dev/kvm:/dev/kvm"
   ],
   "options": {
-    "installed": false,
-    "memory": 2048,
-    "cores": 2
+    "memory": 1536,
+    "cores": 2,
+    "quickboot": true,
+    "deep_trim": true,
+    "idle_park_minutes": 10,
+    "force_reinstall": false
   },
   "schema": {
-    "installed": "bool",
     "memory": "int(512,8192)",
-    "cores": "int(1,8)"
+    "cores": "int(1,8)",
+    "quickboot": "bool",
+    "deep_trim": "bool",
+    "idle_park_minutes": "int(0,120)",
+    "force_reinstall": "bool"
   },
   "arch": ["amd64"],
   "privileged": ["SYS_ADMIN"]

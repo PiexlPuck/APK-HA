@@ -3,25 +3,26 @@ FROM $BUILD_FROM
 
 ENV LANG C.UTF-8
 
-# Install QEMU, VNC, noVNC, websockify, ADB, and ISO extraction tools
+# Install QEMU, noVNC, websockify (Python 3), ADB, and ISO extraction tools
+# Dropped unused x11vnc/xvfb/curl packages to reduce image size
 RUN apk update && apk add --no-cache \
     qemu-system-x86_64 \
     qemu-img \
+    python3 \
     websockify \
     novnc \
-    x11vnc \
-    xvfb \
     bash \
-    curl \
     wget \
     android-tools \
     libarchive-tools
 
-# Copy files
+# Copy runtime scripts and apkstart-powered Ingress UI
 COPY start.sh /app/start.sh
+COPY server.py /app/server.py
 COPY index.html /usr/share/novnc/index.html
 
-RUN chmod a+x /app/start.sh
+RUN sed -i 's/\r$//' /app/start.sh /app/server.py && \
+    chmod a+x /app/start.sh /app/server.py
 
 # Expose ports
 EXPOSE 8099

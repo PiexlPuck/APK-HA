@@ -1,76 +1,70 @@
-# Installation and Setup Guide
+# Installation and Setup Guide (ApkStart Engine v2.0)
 
-Follow this guide to perform the one-time Android-x86 installation and set up automation triggers from Home Assistant.
-
----
-
-## 🛠️ Step 1: Initial Installation (60 Seconds)
-
-1.  Leave the Add-on config option **`installed`** set to **`false`** (default).
-2.  Start the Add-on.
-3.  The Add-on will automatically extract the installation files and boot headlessly into auto-installation mode. It will partition and format the virtual drive, copy files, and install the bootloader automatically.
-4.  Open the Web UI. You will see a blue terminal screen showing installation status.
-5.  Wait about 30–60 seconds. When you see **"Android-x86 is installed successfully"** on the screen, go back to the Home Assistant Add-on dashboard and **STOP** the Add-on.
-
+Follow this guide to start the add-on, drop in your `.apk` files, and automate inputs from Home Assistant.
 
 ---
 
-## 🚀 Step 2: Switch to Running Mode
+## 🛠️ Step 1: One-Click Start & Automatic Installation
 
-1.  In the Add-on **Configuration** tab, toggle **`installed`** to **`true`**.
-2.  Click **Save**.
-3.  Start the Add-on.
-4.  Android-x86 will now boot directly from your virtual disk in less than 10 seconds. The installer ISO is deleted automatically to reclaim host disk space.
+1. Install and **Start** the Add-on.
+2. Open the **Web UI** (Ingress).
+3. On your very first start, the Add-on automatically downloads the Android-x86 image, runs the unattended disk installer (`AUTO_INSTALL=0`), deletes the 900MB installer ISO to reclaim disk space, and transitions **automatically** into Running Mode (or you can click **"Installer Done — Switch to Running Mode"** in the sidebar as soon as the blue installer screen says *"Android-x86 is installed successfully"*).
+4. Once Android finishes its first boot, the **ApkStart Watchdog** automatically:
+   * Disables all Android UI animations (`0.0x`) for instant tap responsiveness,
+   * Deep-trims ~14 background Android system services (`pm disable-user`), and
+   * Saves a **Quickboot VM Snapshot** so future restarts boot in **~3–5 seconds**.
 
 ---
 
-## 📥 Step 3: Installing APK Files
+## 📥 Step 2: Installing & Launching APK Files
 
-You can install any APK using three different methods:
+### Method A: Drag-and-Drop in the ApkStart Sidebar (Recommended)
+1. Open the Add-on Web UI in Home Assistant.
+2. Drag and drop any `.apk` file onto the **"Drop APK to Install & Run"** box in the left sidebar (or click to browse).
+3. The built-in `apkstart` binary manifest parser extracts the app icon, label, package name, and main launcher activity offline, installs the APK via `adb install -r -g -t`, stops any other background apps, and launches your app immediately.
+4. Your app is saved in the **Installed Apps** dock for 1-click launching, stopping, or copying its Home Assistant YAML snippet.
 
-### Method A: Via Android Web Browser (e.g. Chrome/WebView)
-Open the browser inside Android, navigate to your favorite APK repository (e.g. APKPure, APKMirror, or official download pages), download the APK, and run it.
-
-### Method B: Drag and Drop
-Open the Add-on Web UI and **drag and drop any `.apk` file from your desktop directly into the noVNC browser window**. The file is uploaded to the Android emulator. Open a file manager inside Android, go to `Downloads`, and tap to install.
-
-### Method C: Via Remote ADB (Command Line)
-From your computer or any terminal on the same network:
+### Method B: Via Remote ADB (Command Line)
+From any computer or terminal on the same network:
 ```bash
 adb connect <your-home-assistant-ip>:5555
-adb install path_to_your_app.apk
+adb install -r path_to_your_app.apk
 ```
+
+---
+
+## 💤 Step 3: Speed, Snapshots & 0% CPU Idle Parking
+
+In the left sidebar under **Speed & Power Controls**:
+* **💤 Park VM (0% CPU) / ⚡ Wake VM:** Clears background caches (`am kill-all`), forces Android into deep Doze (`dumpsys deviceidle force-idle`), and pauses QEMU guest vCPUs (`stop`). While parked, the add-on consumes **0.0% host CPU**. Clicking **Wake VM** or **▶ Run** on any app resumes execution in milliseconds.
+* **💾 Save Quickboot / ⚡ Load Quickboot:** Saves or restores the full running VM memory state inside `android.qcow2`. Tip: Log into your app once, get to the main dashboard screen, and click **Save Quickboot** so the emulator always restores directly to your logged-in app screen!
+* **✂️ Deep Trim RAM:** Re-applies the `apkstart` background package trimmer and kills cached processes on demand.
 
 ---
 
 ## 🤖 Step 4: Automating Inputs from Home Assistant
 
-To automate clicking buttons (like "Force Charge" or "Preserve" in your Amber app), you can send commands directly from Home Assistant automations.
-
 ### 1. Add the Integration
 1. Go to **Settings > Devices & Services > Add Integration**.
 2. Search for **Android Debug Bridge (ADB)**.
 3. Configure it with:
-   * **Host:** `127.0.0.1` (or `localhost`)
+   * **Host:** `127.0.0.1` (or your Home Assistant IP)
    * **Port:** `5555`
-4. This will create a `media_player` entity (e.g., `media_player.android_x86_emulator`).
+4. This creates a `media_player` entity (e.g., `media_player.android_x86_emulator`).
 
-### 2. Example Automations
+### 2. Generate & Run Automations
+You can test taps and text directly from the **Home Assistant ADB Helper** card in the add-on sidebar and click the generated YAML box to copy the exact `androidtv.adb_command` service call:
 
-To execute controls, call the **`androidtv.adb_command`** service.
-
-#### Launching an App
-Specify the target package name:
+#### Launching an App (Direct Activity or Monkey)
 ```yaml
 service: androidtv.adb_command
 target:
   entity_id: media_player.android_x86_emulator
 data:
-  command: "monkey -p com.amber.app -c android.intent.category.LAUNCHER 1"
+  command: "am start -n com.amber.app/.MainActivity"
 ```
 
-#### Tapping a Coordinates Button
-Simulate a screen tap at a specific X/Y coordinate:
+#### Tapping Coordinates
 ```yaml
 service: androidtv.adb_command
 target:
@@ -79,7 +73,7 @@ data:
   command: "input tap 450 1200"
 ```
 
-#### Typing a Value (e.g. Login credentials)
+#### Typing Text
 ```yaml
 service: androidtv.adb_command
 target:

@@ -1,3 +1,12 @@
+## 2.0.0
+- **Feature (ApkStart Engine):** Integrated the core container trimming and APK parsing engine from `RoutineMiku/apkstart`.
+- **Feature (Offline Binary APK Parser & Drag-and-Drop Installer):** Added a unified Python 3 + Websockify Ingress control server (`server.py`) that parses binary `AndroidManifest.xml` (AXML) and `resources.arsc` offline, extracts app icons/labels/launch activities, installs `.apk` files via `adb install -r -g -t`, and launches them automatically.
+- **Feature (Single-App Container & Deep System Trim):** Automatically disables dead-weight Android background packages (`pm disable-user`), zeroes out UI animation latency (`window_animation_scale 0`), and stops background user apps (`am force-stop` + `am kill-all`) when launching an app.
+- **Feature (Quickboot VM Snapshots):** Automatically saves a QEMU `quickboot` VM snapshot after first boot so subsequent add-on restarts restore into a ready state in ~3–5 seconds (with automatic invalidation when RAM/CPU config changes).
+- **Feature (0% CPU Idle Parking):** Added automatic and manual VM parking (`dumpsys deviceidle force-idle` + QEMU monitor `stop`/`cont`) to drop idle host CPU usage to 0%.
+- **Feature (Zero-Toggle Auto-Install):** Replaced the manual 2-step `installed: false -> true` toggle with automatic disk installation detection and live transition into Running Mode.
+- **Optimization:** Removed unused `x11vnc`, `xvfb`, and `curl` packages from `Dockerfile` and lowered default RAM allocation to `1536` MB.
+
 ## 1.3.4
 - **Fix:** Reverted CPU emulation model in software mode back to `max`. This ensures Android-x86 has access to modern SSE4.1/SSE4.2 instruction sets required to boot the guest kernel, resolving the black screen hang.
 
