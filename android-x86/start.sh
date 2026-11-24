@@ -140,75 +140,43 @@ ensure_boot_media() {
     fi
 }
 
-# 4. Create persistent thin-provisioned virtual hard disk if missing
+# 4. Direct Userspace First-Time Disk Provisioning (No QEMU Installer VM Needed!)
+#    Wait-free replacement for AUTO_INSTALL: extracts ramdisk.img & system.sfs from ISO
+#    and builds the ext4 virtual disk directly in userspace via mke2fs -d in ~5-10 seconds.
+if [ ! -f "$INSTALLED_MARKER" ]; then
+    ensure_boot_media
+
+    STAGING_DIR="/data/staging"
+    ANDROID_DIR="${STAGING_DIR}/android-9.0-r2"
+    RAW_DISK="/data/android.raw"
+
+    rm -rf "$STAGING_DIR" "$RAW_DISK" "$DISK_PATH"
+    mkdir -p "${ANDROID_DIR}/data"
+
+    write_state "extracting" "Extracting Android system image (ramdisk.img & system.sfs) from ISO..."
+    echo "[INFO] Extracting ramdisk.img and system.sfs from ISO to staging directory..."
+    bsdtar -xf "$ISO_PATH" -C "$ANDROID_DIR" ramdisk.img system.sfs
+    chmod -R 755 "$ANDROID_DIR"
+    chmod 771 "${ANDROID_DIR}/data"
+
+    write_state "installing" "Building 16GB ext4 Android virtual disk directly in userspace (~10s)..."
+    echo "[INFO] Building 16GB ext4 filesystem image directly via mke2fs -d (no QEMU installer hang)..."
+    truncate -s 16G "$RAW_DISK"
+    mke2fs -t ext4 -F -L "Android-x86" -d "$STAGING_DIR" "$RAW_DISK"
+
+    write_state "installing" "Converting virtual disk to thin-provisioned qcow2 format..."
+    echo "[INFO] Converting raw ext4 image to thin-provisioned qcow2..."
+    qemu-img convert -f raw -O qcow2 "$RAW_DISK" "$DISK_PATH"
+
+    rm -rf "$STAGING_DIR" "$RAW_DISK"
+    touch "$INSTALLED_MARKER"
+    echo "[INFO] Direct userspace disk provisioning finished in seconds! Transitioning to RUNNING mode..."
+fi
+
+# 5. Fallback: Create persistent virtual hard disk if somehow missing
 if [ ! -f "$DISK_PATH" ]; then
     echo "[INFO] Creating persistent virtual hard disk (16GB thin-provisioned qcow2)..."
     qemu-img create -f qcow2 "$DISK_PATH" 16G
-fi
-
-# 5. Unattended First-Time Auto-Installation Phase
-if [ ! -f "$INSTALLED_MARKER" ]; then
-    ensure_boot_media
-    write_state "installing" "Running unattended Android-x86 disk installation (approx. 45-90s)..."
-    echo "[INFO] Booting in UNATTENDED AUTO-INSTALLATION mode..."
-    rm -f "$QMP_SOCK" "$MON_SOCK"
-
-    qemu-system-x86_64 \
-        $KVM_ARGS \
-        -m "$MEMORY" \
-        -smp "$CORES" \
-        -drive file="$DISK_PATH",format=qcow2,if=virtio \
-        -cdrom "$ISO_PATH" \
-        -kernel "$KERNEL_PATH" \
-        -initrd "$INITRD_PATH" \
-        -append "root=/dev/ram0 androidboot.selinux=permissive AUTO_INSTALL=0" \
-        -vga std \
-        -display none \
-        -vnc 0.0.0.0:0 \
-        -qmp "unix:${QMP_SOCK},server,nowait" \
-        -monitor "unix:${MON_SOCK},server,nowait" \
-        -net nic,model=virtio \
-        -net user,hostfwd=tcp::5555-:5555 \
-        -device virtio-tablet-pci \
-        -no-reboot &
-    QEMU_PID=$!
-
-    # Monitor installation progress automatically:
-    # Once android.qcow2 grows past 500MB and disk write activity settles (or QEMU exits via -no-reboot),
-    # automatically mark installation complete and transition straight into RUNNING mode!
-    echo "[INFO] Monitoring virtual disk write activity for installation completion..."
-    STABLE_COUNT=0
-    LAST_SIZE=0
-    while kill -0 "$QEMU_PID" 2>/dev/null; do
-        sleep 4
-        if [ -f "$INSTALLED_MARKER" ]; then
-            echo "[INFO] Installation completion triggered via UI."
-            break
-        fi
-        CUR_SIZE=$(stat -c%s "$DISK_PATH" 2>/dev/null || echo 0)
-        CUR_MB=$((CUR_SIZE / 1048576))
-        write_state "installing" "Installing Android system image to virtual disk (${CUR_MB} MB written)..."
-        # Once >= 520 MB has been written to the qcow2 image and size stops changing for ~16 seconds
-        if [ "$CUR_SIZE" -gt 545259520 ]; then
-            if [ "$CUR_SIZE" -eq "$LAST_SIZE" ]; then
-                STABLE_COUNT=$((STABLE_COUNT + 1))
-                if [ "$STABLE_COUNT" -ge 4 ]; then
-                    echo "[INFO] Disk installation settled at ${CUR_MB} MB! Finishing installer..."
-                    break
-                fi
-            else
-                STABLE_COUNT=0
-            fi
-        fi
-        LAST_SIZE="$CUR_SIZE"
-    done
-
-    if kill -0 "$QEMU_PID" 2>/dev/null; then
-        kill "$QEMU_PID" 2>/dev/null || true
-        wait "$QEMU_PID" 2>/dev/null || true
-    fi
-    touch "$INSTALLED_MARKER"
-    echo "[INFO] Unattended installation finished! Transitioning directly to RUNNING mode..."
 fi
 
 # 6. Ensure kernel & initrd exist for direct booting, then reclaim 900MB ISO

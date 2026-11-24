@@ -416,27 +416,27 @@
         <div class="lock-card">
             <div class="spinner"></div>
             <div class="lock-title" id="lock-title">First-Time Android Setup</div>
-            <div class="lock-eta" id="lock-eta">⏱️ Estimated Time: ~2–5 minutes (<span id="lock-elapsed">00:00</span> elapsed)</div>
+            <div class="lock-eta" id="lock-eta">⏱️ Estimated Time: ~1–3 minutes (<span id="lock-elapsed">00:00</span> elapsed)</div>
             <div class="lock-msg" id="lock-msg">Checking installation status...</div>
             <div class="progress-track">
                 <div class="progress-bar" id="lock-progress"></div>
             </div>
             <div class="step-list">
                 <div class="step-item" id="step-download">
-                    <span>1. Download 900 MB Android ISO (~1–3 min)</span>
+                    <span>1. Download 900 MB Android ISO (~1–2 min)</span>
                     <span id="step-download-state">Pending</span>
                 </div>
                 <div class="step-item" id="step-extract">
-                    <span>2. Extract Direct-Boot Kernel (~5 sec)</span>
+                    <span>2. Extract Kernel & System Files (~5 sec)</span>
                     <span id="step-extract-state">Pending</span>
                 </div>
                 <div class="step-item" id="step-install">
-                    <span id="step-install-label">3. Auto-Install to Disk (~1–2 min)</span>
+                    <span id="step-install-label">3. Build Virtual Disk Image (~10 sec)</span>
                     <span id="step-install-state">Pending</span>
                 </div>
             </div>
             <div class="lock-note">
-                 🔒 This one-time setup usually takes <strong>2–5 minutes</strong> depending on internet speed (or ~6–12 minutes without KVM hardware acceleration). All controls are locked and will unlock automatically as soon as installation completes.
+                 🔒 This one-time setup builds the Android virtual disk directly in userspace in <strong>~1–3 minutes</strong> total. All controls are locked and will unlock automatically as soon as setup completes.
             </div>
         </div>
     </div>
@@ -621,15 +621,8 @@ data:
                 document.getElementById('lock-msg').textContent = st.message || 'Provisioning Android environment...';
 
                 var etaEl = document.getElementById('lock-eta');
-                var instLabel = document.getElementById('step-install-label');
                 var elapsedTxt = document.getElementById('lock-elapsed') ? document.getElementById('lock-elapsed').textContent : '00:00';
-                if (st.kvm === false) {
-                    etaEl.innerHTML = '⏱️ Estimated Time: ~6–12 min • Software Mode (<span id="lock-elapsed">' + elapsedTxt + '</span> elapsed)';
-                    instLabel.textContent = '3. Auto-Install to Disk (~5–8 min, no KVM)';
-                } else {
-                    etaEl.innerHTML = '⏱️ Estimated Time: ~2–5 minutes (<span id="lock-elapsed">' + elapsedTxt + '</span> elapsed)';
-                    instLabel.textContent = '3. Auto-Install to Disk (~45–90 sec)';
-                }
+                etaEl.innerHTML = '⏱️ Estimated Time: ~1–3 minutes (<span id="lock-elapsed">' + elapsedTxt + '</span> elapsed)';
 
                 var sDown = document.getElementById('step-download');
                 var sExt = document.getElementById('step-extract');

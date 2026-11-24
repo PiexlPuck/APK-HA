@@ -1,3 +1,6 @@
+## 2.0.3
+- **Critical Fix (Resolved First-Time Installer Hang at 0.2 MB):** Replaced the QEMU `AUTO_INSTALL=0` installer boot (which hung waiting for an invisible `dialog --yesno` confirmation prompt inside Android-x86's `1-install` script) with direct userspace ext4 disk provisioning (`bsdtar` + `mke2fs -t ext4 -d` + `qemu-img convert`). The virtual disk now builds in **~10 seconds** without booting an installer VM at all.
+
 ## 2.0.2
 - **Improvement (First-Time Setup Time Estimates):** Added clear estimated completion times (overall and per-step, dynamically adjusted for KVM vs. software emulation) and a live elapsed timer on the first-time installation lock screen.
 

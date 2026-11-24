@@ -8,6 +8,7 @@ ENV LANG C.UTF-8
 RUN apk update && apk add --no-cache \
     qemu-system-x86_64 \
     qemu-img \
+    e2fsprogs \
     python3 \
     websockify \
     novnc \
