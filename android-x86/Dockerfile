@@ -9,6 +9,7 @@ RUN apk update && apk add --no-cache \
     qemu-system-x86_64 \
     qemu-img \
     e2fsprogs \
+    squashfs-tools \
     python3 \
     websockify \
     novnc \

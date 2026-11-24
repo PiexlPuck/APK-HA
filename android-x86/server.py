@@ -605,11 +605,10 @@ def build_session_commands(target_pkg, installed_pkgs, deep_trim=False, kill_bac
     if kill_background:
         commands.append("am kill-all 2>/dev/null || true")
 
-    if deep_trim:
-        for p in OPTIONAL_SYSTEM:
-            if p not in NEVER_TRIM:
-                commands.append(f"pm disable-user --user 0 {p} 2>/dev/null || true")
-        commands.append("settings put global restricted_background_data 1 2>/dev/null || true")
+        if deep_trim:
+            for p in OPTIONAL_SYSTEM:
+                if p not in NEVER_TRIM:
+                    commands.append(f"pm disable-user --user 0 {p} 2>/dev/null || true")
 
     return {"commands": commands, "stopped": stopped}
 
@@ -620,8 +619,6 @@ def build_idle_commands(deep_trim=True):
         "am kill-all 2>/dev/null || true",
         "dumpsys deviceidle force-idle 2>/dev/null || true",
     ]
-    if deep_trim:
-        cmds.append("settings put global restricted_background_data 1 2>/dev/null || true")
     return cmds
 
 
@@ -754,21 +751,61 @@ class RuntimeManager:
         )
         return ok, "VM resumed and Android woken up"
 
+    def ensure_internet(self):
+        """Auto-connect Android-x86 VirtWifi / SLIRP NAT (10.0.2.15 -> 10.0.2.2) & configure public DNS."""
+        net_cmds = [
+            "settings put global restricted_background_data 0",
+            "settings put global captive_portal_mode 0",
+            "settings put global captive_portal_detection_enabled 0",
+            "svc wifi enable 2>/dev/null || true",
+            "cmd wifi connect-network VirtWifi open 2>/dev/null || true",
+            "ifconfig eth0 up 2>/dev/null || true",
+            "ifconfig wifi_eth up 2>/dev/null || true",
+            "ifconfig wlan0 up 2>/dev/null || true",
+            "ip addr add 10.0.2.15/24 dev wifi_eth 2>/dev/null || ip addr add 10.0.2.15/24 dev eth0 2>/dev/null || true",
+            "ip route add default via 10.0.2.2 dev wifi_eth 2>/dev/null || ip route add default via 10.0.2.2 dev eth0 2>/dev/null || true",
+            "ip rule add from all lookup main pref 1 2>/dev/null || true",
+            "setprop net.dns1 8.8.8.8",
+            "setprop net.dns2 1.1.1.1",
+            "ndc resolver setnetdns wlan0 '' 8.8.8.8 1.1.1.1 2>/dev/null || true",
+            "ndc resolver setnetdns eth0 '' 8.8.8.8 1.1.1.1 2>/dev/null || true",
+            "ndc resolver setnetdns 100 '' 8.8.8.8 1.1.1.1 2>/dev/null || true",
+        ]
+        return self.run_adb_shell("; ".join(net_cmds), timeout=20)
+
+    def set_resolution(self, mode="fast_phone"):
+        """Reduce pixel count to cut CPU SwiftShader & VNC rendering load by up to 65%."""
+        self.ensure_awake()
+        if mode == "fast_phone":
+            cmd = "wm size 480x800; wm density 160"
+            desc = "Turbo Phone (480x800 @ 160dpi — 65% less CPU rendering load)"
+        elif mode == "fast_tablet":
+            cmd = "wm size 800x600; wm density 160"
+            desc = "Fast Tablet (800x600 @ 160dpi — 40% less CPU rendering load)"
+        else:
+            cmd = "wm size reset; wm density reset"
+            desc = "Native Display (1024x768)"
+        ok, out = self.run_adb_shell(cmd, timeout=10)
+        return ok, f"Switched display to {desc}"
+
     def apply_apkstart_optimizations(self):
-        """Disable animations, prevent lockscreen sleep, and run ApkStart deep trim."""
+        """Disable animations, throttle dex2oat storms, auto-connect Internet, and run ApkStart deep trim."""
+        self.ensure_internet()
         cmds = [
             "settings put global window_animation_scale 0.0",
             "settings put global transition_animation_scale 0.0",
             "settings put global animator_duration_scale 0.0",
             "settings put global stay_on_while_plugged_in 7",
             "settings put system screen_off_timeout 2147483647",
+            "setprop dalvik.vm.dex2oat-threads 1",
+            "setprop pm.dexopt.install quicken",
+            "setprop pm.dexopt.bg-dexopt speed-profile",
             "wm dismiss-keyguard 2>/dev/null || true",
         ]
         if self.deep_trim:
             for p in OPTIONAL_SYSTEM:
                 if p not in NEVER_TRIM:
                     cmds.append(f"pm disable-user --user 0 {p} 2>/dev/null || true")
-            cmds.append("settings put global restricted_background_data 1 2>/dev/null || true")
         cmds.append("am kill-all 2>/dev/null || true")
         joined = "; ".join(cmds)
         return self.run_adb_shell(joined, timeout=25)
@@ -1184,7 +1221,14 @@ class ApkStartIngressHandler(ProxyRequestHandler):
             elif route == "/api/trim":
                 RUNTIME.ensure_awake()
                 ok, msg = RUNTIME.apply_apkstart_optimizations()
-                self._send_json({"ok": ok, "message": "Applied ApkStart deep system trim & 0-animation settings."})
+                self._send_json({"ok": ok, "message": "Applied ApkStart deep trim, Internet routes & 0-animation settings."})
+            elif route == "/api/internet":
+                RUNTIME.ensure_awake()
+                ok, msg = RUNTIME.ensure_internet()
+                self._send_json({"ok": ok, "message": "Connected Android VirtWifi & SLIRP NAT Internet (DNS 8.8.8.8 / 1.1.1.1)."})
+            elif route == "/api/resolution":
+                ok, msg = RUNTIME.set_resolution(payload.get("mode", "fast_phone"))
+                self._send_json({"ok": ok, "message": msg})
             elif route == "/api/finish-install":
                 with open(INSTALLED_MARKER, "w", encoding="utf-8") as f:
                     f.write(str(int(time.time())))

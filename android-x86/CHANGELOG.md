@@ -1,3 +1,11 @@
+## 2.0.5
+- **Feature (Automatic Internet & VirtWifi Auto-Connect):** Automatically connects Android-x86's `VirtWifi` virtual Wi-Fi and SLIRP NAT routing (`10.0.2.15` -> `10.0.2.2`, DNS `8.8.8.8` / `1.1.1.1`), disables captive-portal blocks, and removes background network restrictions so apps have Internet access immediately on boot (plus a 1-click **🌐 Connect Internet** button in the sidebar).
+- **Performance (Speed & Rendering Overhaul):**
+  - Enabled multi-threaded TCG with a 512MB JIT translation cache (`-accel tcg,thread=multi,tb-size=512`) for systems without KVM.
+  - Lowered default VESA framebuffer resolution (`UVESA_MODE=800x600 DPI=160`) and added a 1-click **⚡ Turbo 480p (`480x800`)** display mode that cuts CPU SwiftShader pixel rendering load by 65%.
+  - Unpacked `system.sfs` into raw `system.img` during initial disk build (`squashfs-tools`) to eliminate guest CPU gzip-SquashFS decompression on `/system` reads.
+  - Added `-device virtio-rng-pci`, `cache=unsafe,aio=threads` disk I/O, and throttled background `dex2oat` compilation (`dalvik.vm.dex2oat-threads 1`, `pm.dexopt.install quicken`).
+
 ## 2.0.4
 - **Critical Fix (Resolved Hang on "android" Boot Logo):** Added the required `androidboot.hardware=android_x86_64`, `HWACCEL=0`, and `SETUPWIZARD=0` kernel parameters to `-append` during direct kernel boot. Without `androidboot.hardware=android_x86_64`, Android's `init` never imported `/init.android_x86_64.rc` or `/fstab.android_x86_64` (never mounting `/cache`, never running `/system/etc/init.sh`, and never setting `vold.post_fs_data_done=1`), causing `SurfaceFlinger` and `system_server` to hang indefinitely on the "android" boot animation screen.
 

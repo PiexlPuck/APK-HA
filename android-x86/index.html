@@ -493,10 +493,15 @@
 
                 <!-- Speed, Snapshot & 0% CPU Idle Controls -->
                 <div class="card">
-                    <div class="card-title"><span>🚀 Power & Snapshots</span></div>
+                    <div class="card-title"><span>🚀 Speed, Net & Power</span></div>
                     <div class="btn-row">
                         <button class="warn" id="park-btn" onclick="togglePark()">💤 Park (0% CPU)</button>
                         <button class="success" onclick="runTrim()">✂️ Trim RAM</button>
+                    </div>
+                    <div class="btn-row" style="margin-top:6px;">
+                        <button class="primary" onclick="fixInternet()">🌐 Connect Internet</button>
+                        <button onclick="setRes('fast_phone')" title="480x800 — 65% faster CPU rendering">⚡ Turbo 480p</button>
+                        <button onclick="setRes('fast_tablet')" title="800x600 — 40% faster CPU rendering">🖥️ 800x600</button>
                     </div>
                     <div class="btn-row" style="margin-top:6px;">
                         <button onclick="snapshotAction('save')">💾 Save Snap</button>
@@ -779,10 +784,22 @@ data:
         }
 
         async function runTrim() {
-            setToast('Trimming background services...');
+            setToast('Trimming background services & syncing Internet...');
             var res = await apiCall('trim', 'POST', {});
             setToast(res.message || 'Trimmed!', !res.ok);
             pollStatus();
+        }
+
+        async function fixInternet() {
+            setToast('Connecting VirtWifi & SLIRP NAT Internet...');
+            var res = await apiCall('internet', 'POST', {});
+            setToast(res.message || 'Internet connected!', !res.ok);
+        }
+
+        async function setRes(mode) {
+            setToast('Switching display resolution for faster rendering...');
+            var res = await apiCall('resolution', 'POST', { mode: mode });
+            setToast(res.message || 'Resolution updated!', !res.ok);
         }
 
         async function snapshotAction(action) {

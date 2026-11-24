@@ -77,8 +77,8 @@ if [ -e /dev/kvm ] && [ -w /dev/kvm ]; then
     KVM_MODE="kvm"
 else
     echo "[WARNING] KVM Hardware Acceleration is NOT available or writable!"
-    echo "[WARNING] Running in QEMU software emulation mode (-cpu max)."
-    KVM_ARGS="-cpu max"
+    echo "[WARNING] Running in multi-threaded TCG software emulation mode (512MB JIT cache)."
+    KVM_ARGS="-accel tcg,thread=multi,tb-size=512 -cpu max"
     KVM_AVAILABLE="false"
     KVM_MODE="tcg"
 fi
@@ -156,6 +156,21 @@ if [ ! -f "$INSTALLED_MARKER" ]; then
     write_state "extracting" "Extracting Android system image (ramdisk.img & system.sfs) from ISO..."
     echo "[INFO] Extracting ramdisk.img and system.sfs from ISO to staging directory..."
     bsdtar -xf "$ISO_PATH" -C "$ANDROID_DIR" ramdisk.img system.sfs
+
+    # Unpack system.sfs -> raw system.img on host if unsquashfs is available
+    # This eliminates guest CPU gzip-SquashFS decompression overhead on every /system read!
+    if command -v unsquashfs >/dev/null 2>&1 && [ -f "${ANDROID_DIR}/system.sfs" ]; then
+        write_state "extracting" "Decompressing system.sfs to raw system.img for faster disk I/O..."
+        echo "[INFO] Unpacking system.sfs -> system.img to eliminate guest SquashFS CPU overhead..."
+        if unsquashfs -f -d "${ANDROID_DIR}/sfs_tmp" "${ANDROID_DIR}/system.sfs" >/dev/null 2>&1; then
+            if [ -f "${ANDROID_DIR}/sfs_tmp/system.img" ]; then
+                mv "${ANDROID_DIR}/sfs_tmp/system.img" "${ANDROID_DIR}/system.img"
+                rm -f "${ANDROID_DIR}/system.sfs"
+            fi
+        fi
+        rm -rf "${ANDROID_DIR}/sfs_tmp"
+    fi
+
     chmod -R 755 "$ANDROID_DIR"
     chmod 771 "${ANDROID_DIR}/data"
 
@@ -217,17 +232,18 @@ qemu-system-x86_64 \
     $KVM_ARGS \
     -m "$MEMORY" \
     -smp "$CORES" \
-    -drive file="$DISK_PATH",format=qcow2,if=virtio,cache=writeback \
+    -drive file="$DISK_PATH",format=qcow2,if=virtio,cache=unsafe,aio=threads \
     -kernel "$KERNEL_PATH" \
     -initrd "$INITRD_PATH" \
-    -append "root=/dev/ram0 androidboot.selinux=permissive androidboot.hardware=android_x86_64 nomodeset xforcevesa HWACCEL=0 SETUPWIZARD=0 quiet SRC=/android-9.0-r2" \
+    -append "root=/dev/ram0 androidboot.selinux=permissive androidboot.hardware=android_x86_64 nomodeset xforcevesa UVESA_MODE=800x600 DPI=160 HWACCEL=0 SETUPWIZARD=0 quiet SRC=/android-9.0-r2" \
     -vga std \
     -display none \
     -vnc 0.0.0.0:0 \
     -qmp "unix:${QMP_SOCK},server,nowait" \
     -monitor "unix:${MON_SOCK},server,nowait" \
-    -net nic,model=virtio \
-    -net user,hostfwd=tcp::5555-:5555 \
+    -netdev user,id=unet,hostfwd=tcp::5555-:5555,dns=8.8.8.8 \
+    -device virtio-net-pci,netdev=unet \
+    -device virtio-rng-pci \
     -device virtio-tablet-pci \
     $LOADVM_ARGS &
 QEMU_PID=$!
